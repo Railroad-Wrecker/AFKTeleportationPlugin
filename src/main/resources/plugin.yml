@@ -4,3 +4,18 @@ main: me.krusk.kruskafkteleportation.KruskAFKTeleportation
 api-version: 1.19
 authors: [ KruskDerTank ]
 description: A Plugin to teleport a player to a specific location if that player is detected to be AFK-ing.
+commands:
+    afktp:
+        description: Teleports a player to a specific location if that player is detected to be AFK-ing.
+        usage: /afktp <player> <x> <y> <z> <world>
+        permission: kruskafkteleportation.afktp
+        permission-message: You do not have permission to use this command.
+        aliases: [ afkteleport, afkteleportation, afktp ]
+        tab-complete: [ players ]
+permissions:
+    kruskafkteleportation.afktp:
+        description: Allows the player to use the /afktp command.
+        default: op
+depend: [ ProtocolLib ]
+softdepend: [ Vault ]
+loadbefore: [ Vault ]
