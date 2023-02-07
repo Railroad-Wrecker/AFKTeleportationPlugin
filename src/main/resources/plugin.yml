@@ -1,0 +1,6 @@
+name: KruskAFKTeleportation
+version: '${project.version}'
+main: me.krusk.kruskafkteleportation.KruskAFKTeleportation
+api-version: 1.19
+authors: [ KruskDerTank ]
+description: A Plugin to teleport a player to a specific location if that player is detected to be AFK-ing.
