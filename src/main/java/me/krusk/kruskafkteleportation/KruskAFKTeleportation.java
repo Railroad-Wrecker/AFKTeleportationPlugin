@@ -39,13 +39,13 @@ public final class KruskAFKTeleportation extends JavaPlugin implements Listener 
         }
 
         Player player = (Player) sender;
-        if (!player.hasPermission("afk.admin")) {
+        if (!player.hasPermission("afkTP.admin")) {
             player.sendMessage("You do not have permission to use this command.");
             return false;
         }
 
         if (args.length != 1 || (!args[0].equals("setpoint") && !args[0].equals("clearpoint"))) {
-            player.sendMessage("Usage: /afk setpoint or /afk clearpoint");
+            player.sendMessage("Usage: /afkTP setpoint or /afkTP clearpoint");
             return false;
         }
 
