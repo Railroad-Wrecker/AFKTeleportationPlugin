@@ -1,64 +1,92 @@
 package me.krusk.kruskafkteleportation;
 
 import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class KruskAFKTeleportation extends JavaPlugin implements Listener {
-
+public class AfkTeleportation extends JavaPlugin implements Listener {
+    private HashMap<UUID, Long> lastActivityTime = new HashMap<>();
     private Location afkLocation;
-    private Map<Player, Location> previousLocations = new HashMap<>();
+    private final long AFK_THRESHOLD = 30 * 1000; // 30 seconds in milliseconds
+    private final String AFK_COMMAND = "/afk";
+    private final String SET_POINT_COMMAND = "/afktp setpoint";
+    private final String CLEAR_POINT_COMMAND = "/afktp clearpoint";
 
     @Override
     public void onEnable() {
-        Bukkit.getPluginManager().registerEvents(this, this);
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can execute this command");
-            return false;
-        }
-        if (args.length != 1) {
-            sender.sendMessage("Usage: /afkTP setpoint or /afkTP clearpoint");
-            return false;
-        }
-        if (args[0].equalsIgnoreCase("setpoint")) {
-            afkLocation = ((Player) sender).getLocation();
-            sender.sendMessage("AFK teleport location set to: " + afkLocation);
-        } else if (args[0].equalsIgnoreCase("clearpoint")) {
-            afkLocation = null;
-            sender.sendMessage("AFK teleport location cleared.");
-        } else {
-            sender.sendMessage("Usage: /afkTP setpoint or /afkTP clearpoint");
-        }
-        return true;
+        getServer().getPluginManager().registerEvents(this, this);
+        Bukkit.getScheduler().runTaskTimer(this, new Runnable() {
+            @Override
+            public void run() {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    UUID id = p.getUniqueId();
+                    if (!lastActivityTime.containsKey(id)) {
+                        lastActivityTime.put(id, System.currentTimeMillis());
+                        continue;
+                    }
+                    if (System.currentTimeMillis() - lastActivityTime.get(id) >= AFK_THRESHOLD) {
+                        if (afkLocation != null) {
+                            Location previousLocation = p.getLocation();
+                            p.teleport(afkLocation);
+                            lastActivityTime.put(id, System.currentTimeMillis());
+                            p.setMetadata("previousLocation", new FixedLocationMetadataValue(previousLocation, this));
+                        }
+                    }
+                }
+            }
+        }, 20, 20);
     }
 
     @EventHandler
-    public void onPlayerMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-        if (!previousLocations.containsKey(player)) {
-            previousLocations.put(player, player.getLocation());
-        }
-        if (afkLocation != null) {
-            double distance = event.getFrom().distance(event.getTo());
-            if (distance > 0.1) {
-                player.teleport(previousLocations.get(player));
-                previousLocations.remove(player);
+    public void onPlayerCommand(PlayerCommandPreprocessEvent e) {
+        Player p = e.getPlayer();
+        UUID id = p.getUniqueId();
+        String cmd = e.getMessage();
+        if (cmd.equalsIgnoreCase(AFK_COMMAND)) {
+            if (afkLocation != null) {
+                Location previousLocation = p.getLocation();
+                p.teleport(afkLocation);
+                lastActivityTime.put(id, System.currentTimeMillis());
+                p.setMetadata("previousLocation", new FixedLocationMetadataValue(previousLocation, (Runnable) this));
+            }
+        } else if (cmd.equalsIgnoreCase(SET_POINT_COMMAND)) {
+            if (p.hasPermission("afkteleportation.setpoint")) {
+                afkLocation = p.getLocation();
+                p.sendMessage("AFK teleportation point set to your current location.");
             } else {
-                player.teleport(afkLocation);
+                p.sendMessage("You do not have permission to use this command.");
+            }
+        } else if (cmd.equalsIgnoreCase(CLEAR_POINT_COMMAND)) {
+            if (p.hasPermission("afkteleportation.clearpoint")) {
+                afkLocation = null;
+                p.sendMessage("AFK teleportation point cleared.");
+            } else {
+                p.sendMessage("You do not have permission to use this command.");
             }
         }
+        lastActivityTime.put(id, System.currentTimeMillis());
+    }
+
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent e) {
+        Player p = e.getPlayer();
+        UUID id = p.getUniqueId();
+        lastActivityTime.put(id, System.currentTimeMillis());
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent e) {
+        Player p = e.getPlayer();
+        UUID id = p.getUniqueId();
+        lastActivityTime.remove(id);
     }
 }
