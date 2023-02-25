@@ -17,7 +17,7 @@ public class FixedLocationMetadataValue implements MetadataValue {
     @Override
     public int asInt() {
         return 0;
-    }
+    }   
 
     @Override
     public float asFloat() {
