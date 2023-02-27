@@ -18,4 +18,4 @@ permissions:
         default: op
 depend: [ ProtocolLib ]
 softdepend: [ Vault ]
-loadbefore: [ Vault ]
+loadbefore: [ Vault ] 
